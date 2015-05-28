@@ -40,10 +40,10 @@ def prettyDate(date):
     return pretty
         
 def htmlifyEntries(allEntries):
-    html = "<TABLE MARGIN=0>"
+    html = "<TABLE MARGIN=0>\n"
     for entry in allEntries:
-        html += "<TR><TD><B>%s</B></TD><TD>%s</TD></TR>"%(prettyDate(entry[ENTRY_DATE]),entry[ENTRY_DESCRIPTION])
-    html += "</TABLE>"
+        html += "<TR><TD><B>%s</B></TD><TD>%s</TD></TR>\n"%(prettyDate(entry[ENTRY_DATE]),entry[ENTRY_DESCRIPTION])
+    html += "</TABLE>\n"
     return html
         
 def upload(content):
@@ -53,7 +53,6 @@ def upload(content):
     k = Key(bucket)
     k.key = "newsfeed.html"
     k.set_contents_from_string(content)
-    print content
 
 def getAllNews():
     source = config.get("NewsFeed", "sourcetype")
@@ -70,7 +69,7 @@ def store(allEntries, line):
         allEntries.append(split)
     elif len(split) == 4:
         allEntries.append(split)
-    else:
+    elif len(split) != 1:
         print "Duff line '%s' in %s"%(line, file)
 
 def localGetAllNews():
@@ -83,14 +82,13 @@ def localGetAllNews():
 def s3GetAllNews():
     s3 = boto.connect_s3()
     bucketName  = config.get("NewsFeed", "bucket")
-    print bucketName
     bucket = s3.get_bucket(bucketName)
     k = Key(bucket)
 
     for file in config.get("NewsFeed", "files").split(","):
         k.key = "newsfeed/%s"%file
         contents = k.get_contents_as_string()
-        for line in contents:
+        for line in contents.split("\n"):
             store(allEntries, line)
     return allEntries
 
