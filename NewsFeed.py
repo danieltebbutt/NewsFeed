@@ -15,15 +15,28 @@ ENTRY_SCORE=4
 
 MAX_ENTRIES=20
 
+NEWSFEED="newsfeed.html"
+BUCKET="danieltebbutt.com"
+
 def calculateScores(allEntries):
     for entry in allEntries:
         entryDate = datetime.datetime.strptime(entry[ENTRY_DATE],"%Y-%m-%d").date()
         entry[ENTRY_DATE]=entryDate
         age = (datetime.date.today() - entryDate).days
-        
-        # !! Simple score for now, we'll tart it up later
-        entry[ENTRY_SCORE] = int(entry[ENTRY_INTEREST]) - (age/4)
+       
+        # Start with the interest value
+        entry[ENTRY_SCORE] = int(entry[ENTRY_INTEREST])
 
+        # Subtract age in weeks
+        entry[ENTRY_SCORE] -= (age/7)
+ 
+        # Special boost for recent news
+        if entry[ENTRY_TYPE] == "NEWS":
+            if age <= 7:
+                entry[ENTRY_SCORE] += 20
+            elif age <= 31:
+                entry[ENTRY_SCORE] += 10
+          
 def sortEntries(allEntries, key):
     allEntries.sort(key=lambda x: x[key])
     allEntries.reverse()
@@ -59,12 +72,27 @@ def htmlifyEntries(allEntries):
     html += "</TABLE>\n"
     return html
         
-def upload(content):
+def debugHtml(allEntries):
+    html = "<TABLE MARGIN=0>\n"
+    html += "<TR><TD>Index</TD><TD>Type</TD><TD>Date</TD><TD>Score</TD><TD>Interest</TD><TD>Description</TD></TR>\n"
+    ii=1  
+    for entry in allEntries:
+        html += "<TR><TD>%d</TD><TD>%s</TD><TD>%s</TD><TD>%d</TD><TD>%s</TD><TD>%s</TD></TR>\n"%(ii,
+                                                                                                 entry[ENTRY_TYPE], 
+                                                                                                 entry[ENTRY_DATE], 
+                                                                                                 entry[ENTRY_SCORE], 
+                                                                                                 entry[ENTRY_INTEREST], 
+                                                                                                 entry[ENTRY_DESCRIPTION])
+        ii += 1
+    html += "</TABLE>\n"
+    return html
+
+def upload(content, target = NEWSFEED):
     s3 = boto.connect_s3()
-    bucket = s3.get_bucket("danieltebbutt.com")
+    bucket = s3.get_bucket(BUCKET)
                     
     k = Key(bucket)
-    k.key = "newsfeed.html"
+    k.key = target
     k.set_contents_from_string(content)
     
 def getAllNews():
@@ -108,6 +136,8 @@ def s3GetAllNews():
 allEntries = getAllNews()
 calculateScores(allEntries)
 sortEntries(allEntries, ENTRY_SCORE)
+html = debugHtml(allEntries)
+upload(html, "debugnews.html")
 pickBest(allEntries)
 sortEntries(allEntries, ENTRY_DATE)
 
