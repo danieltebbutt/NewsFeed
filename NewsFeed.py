@@ -88,8 +88,8 @@ def debugHtml(allEntries):
     return html
 
 def upload(content, target = NEWSFEED):
-    s3 = boto.connect_s3()
-    bucket = s3.get_bucket(BUCKET)
+    s3 = boto.connect_s3(is_secure = False)
+    bucket = s3.get_bucket(BUCKET, validate = False)
                     
     k = Key(bucket)
     k.key = target
@@ -121,9 +121,9 @@ def localGetAllNews():
     return allEntries
         
 def s3GetAllNews():
-    s3 = boto.connect_s3()
+    s3 = boto.connect_s3(is_secure=False)
     bucketName  = config.get("NewsFeed", "bucket")
-    bucket = s3.get_bucket(bucketName)
+    bucket = s3.get_bucket(bucketName, validate = False)
     k = Key(bucket)
 
     for file in config.get("NewsFeed", "files").split(","):
